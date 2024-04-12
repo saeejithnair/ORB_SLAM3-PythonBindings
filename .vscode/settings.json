@@ -1,0 +1,15 @@
+{
+    "cmake.configureOnOpen": false,
+    "files.associations": {
+        "array": "cpp",
+        "string_view": "cpp",
+        "*.ipp": "cpp",
+        "deque": "cpp",
+        "list": "cpp",
+        "string": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "vector": "cpp",
+        "initializer_list": "cpp"
+    }
+}
