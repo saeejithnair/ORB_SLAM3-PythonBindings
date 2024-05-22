@@ -8,7 +8,6 @@
 #include <ORB_SLAM3/Converter.h>
 #include <ORB_SLAM3/Tracking.h>
 #include <ORB_SLAM3/MapPoint.h>
-#include <ORB_SLAM3/Thirdparty/Sophus/sophus/se3.hpp>
 #include "ORBSlamPython.h"
 
 
@@ -152,20 +151,28 @@ bool ORBSlamPython::loadAndProcessMono(std::string imageFile, double timestamp)
     return this->processMono(im, timestamp);
 }
 
-bool ORBSlamPython::processMono(cv::Mat image, double timestamp)
+boost::python::list ORBSlamPython::processMono(cv::Mat image, double timestamp)
 {
     if (!system)
     {
-        return false;
+        return boost::python::list();
     }
     if (image.data)
     {
-        cv::Mat pose = SE3ToCvMat(system->TrackMonocular(image, timestamp));
-        return !pose.empty();
+        auto pose = system->TrackMonocular(image, timestamp);
+        const Eigen::Matrix<float, 4, 4> m = pose.matrix();
+        boost::python::list t;
+
+        for (int i = 0; i < m.rows(); ++i) {
+            for (int j = 0; j < m.cols(); ++j) {
+                t.append(m(i, j));
+            }
+        }
+        return t;
     }
     else
     {
-        return false;
+        return boost::python::list();
     }
 }
 
@@ -370,67 +377,31 @@ boost::python::list ORBSlamPython::getTrajectoryPoints() const
     vector<ORB_SLAM3::KeyFrame*> vpKFs = system->GetKeyFrames();
     std::sort(vpKFs.begin(), vpKFs.end(), ORB_SLAM3::KeyFrame::lId);
 
-    // Transform all keyframes so that the first keyframe is at the origin.
-    // After a loop closure the first keyframe might not be at the origin.
-    // Of course, if we have no keyframes, then just use the identity matrix.
-    cv::Mat Two = cv::Mat::eye(4,4,CV_32F);
-    if (vpKFs.size() > 0) {
-        cv::Mat Two = SE3ToCvMat(vpKFs[0]->GetPoseInverse());
-    }
-
     boost::python::list trajectory;
 
-    // Frame pose is stored relative to its reference keyframe (which is optimized by BA and pose graph).
-    // We need to get first the keyframe pose and then concatenate the relative transformation.
-    // Frames not localized (tracking failure) are not saved.
-
-    // For each frame we have a reference keyframe (lRit), the timestamp (lT) and a flag
-    // which is true when tracking failed (lbL).
-    std::list<ORB_SLAM3::KeyFrame*>::iterator lRit = system->GetTracker()->mlpReferences.begin();
-    std::list<double>::iterator lT = system->GetTracker()->mlFrameTimes.begin();
-    for(std::list<Sophus::SE3<float>>::iterator lit=system->GetTracker()->mlRelativeFramePoses.begin(), lend=system->GetTracker()->mlRelativeFramePoses.end();lit!=lend;lit++, lRit++, lT++)
+    for(size_t i=0; i<vpKFs.size(); i++)
     {
-        ORB_SLAM3::KeyFrame* pKF = *lRit;
+        ORB_SLAM3::KeyFrame* pKF = vpKFs[i];
 
-        cv::Mat Trw = cv::Mat::eye(4,4,CV_32F);
+       // pKF->SetPose(pKF->GetPose()*Two);
 
-        while(pKF != NULL && pKF->isBad())
-        {
-            ORB_SLAM3::KeyFrame* pKFParent;
+        if(pKF->isBad())
+            continue;
 
-            // std::cout << "bad parent" << std::endl;
-            Trw = Trw*SE3ToCvMat(pKF->mTcp);
-            pKFParent = pKF->GetParent();
-            if (pKFParent == pKF) {
-                // We've found a frame that is it's own parent, presumably a root or something. Break out
-                break;
-            } else {
-                pKF = pKFParent;
-            }
-        }
-        if (pKF != NULL && !pKF->isBad()) {
-            Trw = Trw*SE3ToCvMat(pKF->GetPose())*Two;
+        Sophus::SE3f Twc = pKF->GetPoseInverse();
+        Eigen::Quaternionf q = Twc.unit_quaternion();
+        Eigen::Vector3f t = Twc.translation();
 
-            cv::Mat Tcw = SE3ToCvMat(*lit)*Trw;
-            cv::Mat Rwc = Tcw.rowRange(0,3).colRange(0,3).t();
-            cv::Mat twc = -Rwc*Tcw.rowRange(0,3).col(3);
-
-            trajectory.append(boost::python::make_tuple(
-                                *lT,
-                                Rwc.at<float>(0,0),
-                                Rwc.at<float>(0,1),
-                                Rwc.at<float>(0,2),
-                                twc.at<float>(0),
-                                Rwc.at<float>(1,0),
-                                Rwc.at<float>(1,1),
-                                Rwc.at<float>(1,2),
-                                twc.at<float>(1),
-                                Rwc.at<float>(2,0),
-                                Rwc.at<float>(2,1),
-                                Rwc.at<float>(2,2),
-                                twc.at<float>(2)
-                            ));
-        }
+        trajectory.append(boost::python::make_tuple(
+            pKF->mTimeStamp,
+            t(0),
+            t(1),
+            t(2),
+            q.x(),
+            q.y(),
+            q.z(),
+            q.w()
+        ));
     }
 
     return trajectory;

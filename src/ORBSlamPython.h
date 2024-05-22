@@ -19,7 +19,7 @@ public:
     bool initialize();
     bool isRunning();
     bool loadAndProcessMono(std::string imageFile, double timestamp);
-    bool processMono(cv::Mat image, double timestamp);
+    boost::python::list processMono(cv::Mat image, double timestamp);
     bool loadAndProcessStereo(std::string leftImageFile, std::string rightImageFile, double timestamp);
     bool processStereo(cv::Mat leftImage, cv::Mat rightImage, double timestamp);
     bool loadAndProcessRGBD(std::string imageFile, std::string depthImageFile, double timestamp);
