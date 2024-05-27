@@ -160,14 +160,15 @@ boost::python::list ORBSlamPython::processMono(cv::Mat image, double timestamp)
     if (image.data)
     {
         auto pose = system->TrackMonocular(image, timestamp);
+
         const Eigen::Matrix<float, 4, 4> m = pose.matrix();
         boost::python::list t;
-
         for (int i = 0; i < m.rows(); ++i) {
             for (int j = 0; j < m.cols(); ++j) {
                 t.append(m(i, j));
             }
         }
+
         return t;
     }
     else
@@ -222,20 +223,29 @@ bool ORBSlamPython::loadAndProcessRGBD(std::string imageFile, std::string depthI
     return this->processRGBD(im, imDepth, timestamp);
 }
 
-bool ORBSlamPython::processRGBD(cv::Mat image, cv::Mat depthImage, double timestamp)
+boost::python::list ORBSlamPython::processRGBD(cv::Mat image, cv::Mat depthImage, double timestamp)
 {
     if (!system)
     {
-        return false;
+        return boost::python::list();
     }
     if (image.data && depthImage.data)
     {
-        cv::Mat pose = SE3ToCvMat(system->TrackRGBD(image, depthImage, timestamp));
-        return !pose.empty();
+        auto pose = system->TrackRGBD(image, depthImage, timestamp);
+
+        const Eigen::Matrix<float, 4, 4> m = pose.matrix();
+        boost::python::list t;
+        for (int i = 0; i < m.rows(); ++i) {
+            for (int j = 0; j < m.cols(); ++j) {
+                t.append(m(i, j));
+            }
+        }
+
+        return t;
     }
     else
     {
-        return false;
+        return boost::python::list();
     }
 }
 

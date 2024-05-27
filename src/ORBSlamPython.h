@@ -23,7 +23,7 @@ public:
     bool loadAndProcessStereo(std::string leftImageFile, std::string rightImageFile, double timestamp);
     bool processStereo(cv::Mat leftImage, cv::Mat rightImage, double timestamp);
     bool loadAndProcessRGBD(std::string imageFile, std::string depthImageFile, double timestamp);
-    bool processRGBD(cv::Mat image, cv::Mat depthImage, double timestamp);
+    boost::python::list processRGBD(cv::Mat image, cv::Mat depthImage, double timestamp);
     void reset();
     void shutdown();
     ORB_SLAM3::Tracking::eTrackingState getTrackingState() const;
