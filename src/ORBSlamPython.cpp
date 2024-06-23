@@ -220,10 +220,10 @@ bool ORBSlamPython::loadAndProcessRGBD(std::string imageFile, std::string depthI
         cv::cvtColor(im, im, cv::COLOR_BGR2RGB);
     }
     cv::Mat imDepth = cv::imread(depthImageFile, cv::IMREAD_UNCHANGED);
-    return this->processRGBD(im, imDepth, timestamp);
+    return this->processRGBD(im, imDepth, {}, timestamp);
 }
 
-boost::python::list ORBSlamPython::processRGBD(cv::Mat image, cv::Mat depthImage, double timestamp)
+boost::python::list ORBSlamPython::processRGBD(cv::Mat image, cv::Mat depthImage, boost::python::list imuMeas, double timestamp)
 {
     if (!system)
     {
@@ -231,7 +231,22 @@ boost::python::list ORBSlamPython::processRGBD(cv::Mat image, cv::Mat depthImage
     }
     if (image.data && depthImage.data)
     {
-        auto pose = system->TrackRGBD(image, depthImage, timestamp);
+        Sophus::SE3f pose;
+        if (boost::python::len(imuMeas) == 0)
+            pose = system->TrackRGBD(image, depthImage, timestamp);
+        else
+        {
+            std::vector<double> vImuVals;
+            for (int i = 0; i < boost::python::len(imuMeas); ++i)
+            {
+                vImuVals.push_back(boost::python::extract<double>(imuMeas[i]));
+            }
+            std::vector<ORB_SLAM3::IMU::Point> vImuMeas;
+            ORB_SLAM3::IMU::Point lastPoint(vImuVals[0], vImuVals[1], vImuVals[2], vImuVals[3], vImuVals[4], vImuVals[5], timestamp);
+            vImuMeas.push_back(lastPoint);
+
+            pose = system->TrackRGBD(image, depthImage, timestamp, vImuMeas);
+        }
 
         const Eigen::Matrix<float, 4, 4> m = pose.matrix();
         boost::python::list t;
