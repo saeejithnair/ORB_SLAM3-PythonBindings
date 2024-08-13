@@ -89,7 +89,9 @@ BOOST_PYTHON_MODULE(orbslam3)
         .def("save_settings_file", &ORBSlamPython::saveSettingsFile)
         .staticmethod("save_settings_file")
         .def("load_settings_file", &ORBSlamPython::loadSettingsFile)
-        .staticmethod("load_settings_file");
+        .staticmethod("load_settings_file")
+        .def("load_map", &ORBSlamPython::LoadMap)
+        .def("save_map", &ORBSlamPython::SaveMap);
 }
 
 ORBSlamPython::ORBSlamPython(std::string vocabFile, std::string settingsFile, ORB_SLAM3::System::eSensor sensorMode)
@@ -494,6 +496,23 @@ bool ORBSlamPython::saveSettingsFile(boost::python::dict settings, std::string s
     }
     
     return true;
+}
+
+void ORBSlamPython::SaveMap(std::string filename)
+{
+    if (system)
+    {
+        system->SaveAtlasToFile(filename, 1); // 1 is for binary format
+    }
+}
+
+bool ORBSlamPython::LoadMap(std::string filename)
+{
+    if (system)
+    {
+        return system->LoadAtlasFromFile(filename, 1);
+    }
+    return false;
 }
 
 // Helpers for reading cv::FileNode objects into python objects.

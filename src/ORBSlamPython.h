@@ -40,6 +40,9 @@ public:
     
     static bool saveSettingsFile(boost::python::dict settings, std::string settingsFilename);
     static boost::python::dict loadSettingsFile(std::string settingsFilename);
+
+    void SaveMap(std::string filename);
+    bool LoadMap(std::string filename);
     
 private:
     std::string vocabluaryFile;
