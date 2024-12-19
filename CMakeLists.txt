@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.12)
 project(ORB_SLAM3_PYTHON_BINDING)
 
 IF(NOT CMAKE_BUILD_TYPE)
@@ -29,8 +29,7 @@ else()
 endif()
 
 find_package(Eigen3 3.1.0 REQUIRED)
-find_package(PythonLibs 3.10 REQUIRED)
-find_package(NumPy)
+find_package(Python3 COMPONENTS Interpreter Development NumPy REQUIRED)
 find_package(Boost 1.74.0 REQUIRED COMPONENTS python310)
 find_package(OpenCV REQUIRED)
 find_package(ORB_SLAM3 REQUIRED)
@@ -44,8 +43,8 @@ ${PROJECT_SOURCE_DIR}/src
 ${ORB_SLAM3_INCLUDE_DIR}
 ${EIGEN3_INCLUDE_DIR}
 ${Boost_INCLUDE_DIRS}
-${PYTHON_INCLUDE_DIRS}
-${PYTHON_NUMPY_INCLUDE_DIR}
+${Python3_INCLUDE_DIRS}
+${Python3_NumPy_INCLUDE_DIRS}
 )
 if (Pangolin_FOUND)
   include_directories(${Pangolin_INCLUDE_DIRS})
@@ -66,11 +65,10 @@ ${ORB_SLAM3_LIBRARIES}
 ${EIGEN3_LIBS}
 ${OpenCV_LIBS}
 ${Boost_LIBRARIES}
-${PYTHON_LIBRARIES}
+${Python3_LIBRARIES}
 )
 if (Pangolin_FOUND)
   target_link_libraries(${TARGET_MODULE_NAME} ${Pangolin_LIBRARIES})
 endif()
 
-install(TARGETS ${TARGET_MODULE_NAME} DESTINATION lib/python3.10/dist-packages)
-
+install(TARGETS ${TARGET_MODULE_NAME} LIBRARY DESTINATION ${Python3_SITEARCH})
